@@ -1,0 +1,8 @@
+.env
+.env.local
+#key
+keys/
+keys/snowflake_key.p8
+keys/snowflake_key.pub
+# log file
+pipeline_execution.log

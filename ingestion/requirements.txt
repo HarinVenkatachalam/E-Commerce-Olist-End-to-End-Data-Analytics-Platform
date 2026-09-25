@@ -1,0 +1,6 @@
+snowflake-connector-python[pandas]==3.12.2
+pandas==2.2.3
+kaggle==1.6.17
+python-dotenv==1.0.1
+cryptography==43.0.1                       # Handles local private/public key decryption operations
+twilio==9.3.2
