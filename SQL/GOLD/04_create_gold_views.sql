@@ -120,9 +120,20 @@ SELECT
     DATEDIFF('day', o.ORDER_PURCHASE_TIMESTAMP, o.ORDER_DELIVERED_CUSTOMER_DATE) AS DELIVERY_DAYS_ACTUAL,
     DATEDIFF('day', o.ORDER_PURCHASE_TIMESTAMP, o.ORDER_ESTIMATED_DELIVERY_DATE) AS DELIVERY_DAYS_ESTIMATED,
     CASE 
-        WHEN o.ORDER_DELIVERED_CUSTOMER_DATE > o.ORDER_ESTIMATED_DELIVERY_DATE THEN 1 
-        ELSE 0 
-    END AS IS_LATE,
+    -- GATE 1: If an upstream order was explicitly canceled or unavailable, 
+    -- it is a systemic fulfillment failure. We force it to 1 (Late/Failed).
+    WHEN o.ORDER_STATUS IN ('CANCELED', 'UNAVAILABLE') THEN 1
+    -- GATE 2: If the item was NEVER delivered (NULL) but the promised SLA date 
+    -- has already passed, it is actively missing/late. We force it to 1.
+    WHEN o.ORDER_DELIVERED_CUSTOMER_DATE IS NULL AND o.ORDER_ESTIMATED_DELIVERY_DATE < CURRENT_DATE() THEN 1
+    -- GATE 3: If it was delivered and genuinely missed the promise window, it is late (1).
+    WHEN o.ORDER_DELIVERED_CUSTOMER_DATE > o.ORDER_ESTIMATED_DELIVERY_DATE THEN 1
+    -- GATE 4: If it has no delivery stamp but the estimated date is still in the future,
+    -- it's an active order safely in transit. We pass it as NULL so it doesn't bias completed calculations.
+    WHEN o.ORDER_DELIVERED_CUSTOMER_DATE IS NULL THEN NULL 
+    -- DEFAULT: The package arrived safely on or before the estimated date (0 = On-Time).
+    ELSE 0 
+END AS IS_LATE,
     
     -- Integrated Haversine Formula calculating great-circle transit distance (km)
     COALESCE(

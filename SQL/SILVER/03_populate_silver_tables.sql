@@ -582,4 +582,9 @@ END;
 
 $$;
 
- 
+create or replace task OLIST_DB.SILVER.TSK_BATCH_PROCCESSING_OLIST_DATA
+    warehouse = 'TRANSFORM_WH'
+    schedule = 'using cron 0 6 * * * America/Chicago'
+   
+  as
+call SILVER.PRC_TRANSFORM_SILVER_BATCH();
